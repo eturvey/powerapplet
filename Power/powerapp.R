@@ -1,5 +1,6 @@
 library(shiny)
 ## Power
+#Version 2.0 For GitHub Purposes
 ## Explore the factors that effect power
 library(ggplot2)
 library(gridExtra)
