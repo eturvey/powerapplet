@@ -63,10 +63,8 @@ ui <- fluidPage(
     conditionalPanel(
       
       condition = "input.select == 1",
-      conditionalPanel(
-        condition = "input.checkbox3 == true",
         plotOutput(outputId="plot1samp",width="100%",height=600)
-      )
+  
       
 
     )
@@ -134,7 +132,7 @@ server <- function(input,output) {
     
     p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Number of Successes")+ylab("Count")
  
-
+    filler <- ggplot()
     p2 <- ggplot()+geom_histogram(data=dat, aes(x=num,fill=DistributionType))+scale_fill_manual(values=c("blue","green"))+
       theme(legend.background = element_rect(fill="grey90",size=0.5, linetype="solid"))+ 
       ggtitle("Combined Distribution")+xlab("Number of Successes")+ylab("Count")+
@@ -148,7 +146,21 @@ server <- function(input,output) {
                  c(3,3,3,3,3,3,3,3,3,3,3,3),
                  c(3,3,3,3,3,3,3,3,3,3,3,3),
                  c(3,3,3,3,3,3,3,3,3,3,3,3))
-    grid.arrange(p1,p3,p2,layout_matrix=lay)
+    if(input$checkbox == T){
+      grid.arrange(p1,filler,filler,layout_matrix=lay)
+    }
+    if(input$checkbox2 == T){
+      grid.arrange(p1,p3,filler,layout_matrix=lay)
+    }
+    if(input$checkbox3 == T){
+      grid.arrange(p1,p3,p2,layout_matrix=lay)
+    }
+    if(input$checkbox == F){
+      grid.arrange(filler,filler,filler,layout_matrix=lay)
+    }
+ 
+  
+  
   
   })
   output$plot2samp <- renderPlot({
