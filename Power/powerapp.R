@@ -23,6 +23,9 @@ ui <- fluidPage(
         checkboxInput("checkbox2", label = "Done?", value = FALSE),
         conditionalPanel(
           condition="input.checkbox2 == true",
+          selectInput("side", label = "Direction", 
+                      choices = list("Greater" = 1, "Less" = 2, "Two Tailed" = 3), 
+                      selected = 1),
           numericInput("los","Level of Significance",min =0,max=1,  value = .05),
           checkboxInput("checkbox3", label = "Done?", value = FALSE)
         )
@@ -63,7 +66,9 @@ ui <- fluidPage(
     conditionalPanel(
       
       condition = "input.select == 1",
-        plotOutput(outputId="plot1samp",width="100%",height=600)
+      plotOutput(outputId="plot1samp",width="100%",height=600),
+      textOutput("selected_var")
+      
   
       
 
@@ -88,6 +93,9 @@ ui <- fluidPage(
 
 
 server <- function(input,output) {
+  output$selected_var <- renderText({
+    "Print this shit"
+  })
   output$plot1samp <- renderPlot({
 
     nully = rep(NA, times=input$reps)
@@ -128,9 +136,12 @@ server <- function(input,output) {
     #need to deal with the +2 case
     colorsforoutline <- dat$num == rejreg:length(input$n)
     
-    p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")
-    
-    p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Number of Successes")+ylab("Count")
+
+    p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
+      annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")+legend("hellp")
+
+    p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="alt")$num)), hjust = 0, vjust = 1,fontface="bold")+
+      annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
  
     filler <- ggplot()
     p2 <- ggplot()+geom_histogram(data=dat, aes(x=num,fill=DistributionType))+scale_fill_manual(values=c("blue","green"))+
