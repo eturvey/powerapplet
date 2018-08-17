@@ -140,62 +140,180 @@ server <- function(input,output) {
     dat <- data.frame(DistributionType = factor(rep(c("null","alt"), each=input$reps)), 
                       num = c(nully,alty))
     
-    #creates a vector of the probability that that number of successes will occur
-    temp = rep(NA, times = input$n)
-    for (i in 1:input$n) {
-      temp[i] <- sum(nully==i)/length(nully)
+    #creates a vector of the probability that 0:n number of successes will occur under null and then alt
+    temp = rep(NA, times = input$n+1)
+    for (i in 1:input$n+1) {
+      temp[i] <- sum(nully==i-1)/length(nully)
     }
+    temp[1]=1-sum(temp[1:input$n+1])
     
-    #adds up these probabilities until we reach a number greater than LOS (starting from the end) - if first number is above LOS use n+1
-    min = 0
-    backwards = input$n
-    if(temp[backwards] > input$los){
+    tempalt = rep(NA, times = input$n+1)
+    for (i in 1:input$n+1) {
+      tempalt[i] <- sum(alty==i-1)/length(alty)
+    }
+    tempalt[1]=1-sum(tempalt[1:input$n+1])
+  
+  #do this if it is a greater than test
+    
+    if(input$side == 1){
+      #adds up these probabilities until we reach a number greater than LOS (starting from the end) - if first number is above LOS use n+1
       min = 0
       backwards = input$n + 1
-    }else{
-      while (min < input$los){
-        holdlos = min
-        holdpos = backwards
-        min = min + temp[backwards]
-        backwards = backwards-1
+      if(temp[backwards] > input$los){
+        print('ehlllp')
+        min = 0
+        backwards = input$n + 1
+      }else{
+        print('hellp')
+        while (min < input$los){
+          holdlos = min
+          holdpos = backwards
+          min = min + temp[backwards]
+          backwards = backwards-1
+        }
+        min = holdlos
+        backwards = holdpos 
       }
-      min = holdlos
-      backwards = holdpos + 1
-    }
-    
-    #add up probabilities until rejection region is reached
-    
-    tempalt = rep(NA, times = input$n)
-    for (i in 1:input$n) {
-      tempalt[i] <- sum(alty==i)/length(alty)
-    }
-    current = input$n
-    altmin = 0
-    while (backwards <= current){
       
-      altmin = altmin + tempalt[current]
-      current = current-1
-    }
-    rejreg = backwards
+      #add up probabilities under alt until rejection region is reached
+      
+      current = input$n+1
+      altmin = 0
+      while (backwards+1 <= current){
 
+        altmin = altmin + tempalt[current]
+        current = current-1
+      }
+      rejreg = backwards
+  
+  
+   #create three stages of graphs: 1. just the null, 2. null and alt, 3. Combined dist with info about the rejection region   
+  
+      p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
+        annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+  
+      p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="alt")$num)), hjust = 0, vjust = 1,fontface="bold")+
+        annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+   
+      filler <- ggplot()
+      p2g <- ggplot()+geom_histogram(data=dat, aes(x=num,fill=DistributionType))+scale_fill_manual(values=c("blue","green"))+
+        theme(legend.background = element_rect(fill="grey90",size=0.5, linetype="solid"))+ 
+        ggtitle("Combined Distribution")+xlab("Number of Successes")+ylab("Count")+
+        geom_vline(xintercept=rejreg, col="red")+geom_rect(aes(xmin=rejreg, xmax=Inf, ymin=0, ymax=Inf, alpha=.3),fill="red")+
+        guides(alpha=FALSE)+annotate("text", -Inf, Inf, label = paste("Rejection Region: X >=", rejreg), hjust = 0, vjust = 1,col="red",fontface="bold")+
+        annotate("text",  -Inf, Inf, label = paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)), hjust = 0, vjust = 3,col="red",fill="blue",fontface="bold")+
+        annotate("text", -Inf, Inf, label = paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2) ), hjust = 0, vjust = 5,col="red",fontface="bold")
+##   
+#do this if less than test
+##
+##
+      
+    }else if (input$side == 2){
 
- #create three stages of graphs: 1. just the null, 2. null and alt, 3. Combined dist with info about the rejection region   
-
-    p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
-      annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
-
-    p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="alt")$num)), hjust = 0, vjust = 1,fontface="bold")+
-      annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+      #adds up these probabilities until we reach a number greater than LOS (starting from the beginning) - if first number is above LOS use 0
+      min = 0
+      backwards = 1
+      if(temp[backwards] > input$los){
+        min = 0
+        backwards = -1
+      }else{
  
-    filler <- ggplot()
-    p2g <- ggplot()+geom_histogram(data=dat, aes(x=num,fill=DistributionType))+scale_fill_manual(values=c("blue","green"))+
-      theme(legend.background = element_rect(fill="grey90",size=0.5, linetype="solid"))+ 
-      ggtitle("Combined Distribution")+xlab("Number of Successes")+ylab("Count")+
-      geom_vline(xintercept=rejreg, col="red")+geom_rect(aes(xmin=rejreg, xmax=Inf, ymin=0, ymax=Inf, alpha=.3),fill="red")+
-      guides(alpha=FALSE)+annotate("text", -Inf, Inf, label = paste("Rejection Region: X >=", rejreg), hjust = 0, vjust = 1,col="red",fontface="bold")+
-      annotate("text",  -Inf, Inf, label = paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)), hjust = 0, vjust = 3,col="red",fill="blue",fontface="bold")+
-      annotate("text", -Inf, Inf, label = paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2) ), hjust = 0, vjust = 5,col="red",fontface="bold")
-
+        while (min < input$los){
+          holdlos = min
+          holdpos = backwards
+          min = min + temp[backwards]
+          backwards = backwards+1
+        }
+        min = holdlos
+        backwards = holdpos - 2
+      }
+      
+      #add up probabilities under alt until rejection region is reached
+      
+      current = 1
+      altmin = 0
+      while (backwards+1 >= current){
+        
+        altmin = altmin + tempalt[current]
+        current = current+1
+      }
+      rejreg = backwards
+      
+      
+      #create three stages of graphs: 1. just the null, 2. null and alt, 3. Combined dist with info about the rejection region   
+      
+      p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
+        annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+      
+      p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="alt")$num)), hjust = 0, vjust = 1,fontface="bold")+
+        annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+      
+      filler <- ggplot()
+      p2g <- ggplot()+geom_histogram(data=dat, aes(x=num,fill=DistributionType))+scale_fill_manual(values=c("blue","green"))+
+        theme(legend.background = element_rect(fill="grey90",size=0.5, linetype="solid"))+ 
+        ggtitle("Combined Distribution")+xlab("Number of Successes")+ylab("Count")+
+        geom_vline(xintercept=rejreg, col="red")+geom_rect(aes(xmin=-Inf, xmax=rejreg, ymin=0, ymax=Inf, alpha=.3),fill="red")+
+        guides(alpha=FALSE)+annotate("text", -Inf, Inf, label = paste("Rejection Region: X <=", rejreg), hjust = 0, vjust = 1,col="red",fontface="bold")+
+        annotate("text",  -Inf, Inf, label = paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)), hjust = 0, vjust = 3,col="red",fill="blue",fontface="bold")+
+        annotate("text", -Inf, Inf, label = paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2) ), hjust = 0, vjust = 5,col="red",fontface="bold")
+      
+  #do this if two tailed test
+    }else if(input$side==3){
+      min = 0
+      front = 1
+      end = input$n+1
+      if(temp[front]+temp[end] > input$los){
+        front = -1
+        end = input$n+1
+      }else{
+        while (min < input$los){
+          holdlos = min
+          holdfro = front
+          holden = end
+          min = min + temp[end]+temp[front]
+          front = front+1
+          end=end-1
+        }
+        min = holdlos
+        end = holden
+        front = holdfro -2
+      }
+      
+      #add up probabilities under alt until rejection region is reached
+      
+      currentfro = 1
+      currentend = input$n+1
+      altmin = 0
+      while (front >= currentfro-1 & end <= currentend-1){
+        
+        altmin = altmin + tempalt[currentfro] + tempalt[currentend]
+        currentfro = currentfro+1
+        currentend = currentend-1
+      }
+      print(front)
+      print(end)
+      rejregfro = front
+      rejregend = end
+      
+      
+      #create three stages of graphs: 1. just the null, 2. null and alt, 3. Combined dist with info about the rejection region   
+      
+      p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
+        annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+      
+      p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="alt")$num)), hjust = 0, vjust = 1,fontface="bold")+
+        annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+      
+      filler <- ggplot()
+      p2g <- ggplot()+geom_histogram(data=dat, aes(x=num,fill=DistributionType))+scale_fill_manual(values=c("blue","green"))+
+        theme(legend.background = element_rect(fill="grey90",size=0.5, linetype="solid"))+ 
+        ggtitle("Combined Distribution")+xlab("Number of Successes")+ylab("Count")+
+        geom_vline(xintercept=rejregfro, col="red")+geom_vline(xintercept=rejregend, col="red")+geom_rect(aes(xmin=-Inf, xmax=rejregfro, ymin=0, ymax=Inf, alpha=.3),fill="red")+geom_rect(aes(xmin=rejregend, xmax=Inf, ymin=0, ymax=Inf, alpha=.3),fill="red")+
+        guides(alpha=FALSE)+annotate("text", -Inf, Inf, label = paste("Rejection Region: X <=", rejregfro, "and X >=", rejregend), hjust = 0, vjust = 1,col="red",fontface="bold")+
+        annotate("text",  -Inf, Inf, label = paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)), hjust = 0, vjust = 3,col="red",fill="blue",fontface="bold")+
+        annotate("text", -Inf, Inf, label = paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2) ), hjust = 0, vjust = 5,col="red",fontface="bold")
+      
+    }
     
   #sets up the layout of the graphs
     lay <- rbind(c(1,1,1,1,1,1,2,2,2,2,2,2),
