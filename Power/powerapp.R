@@ -56,15 +56,35 @@ ui <- fluidPage(
       condition = "input.select == 2",
       
       #Options for 2 sample Prop
+      numericInput("Hyp1","Hypothesised Probability of Sucess Group 1",min =0, max = 1, value = .5),
+      numericInput("Hyp2","Hypothesised Probability of Sucess Group 2",min =0, max = 1, value = .5),
+      numericInput("n2","Sample Size for Each Group",min =0, value = 5),
+      numericInput("reps2","Number of Reps",min =0,  value = 100),
+      checkboxInput("checkboxp1", label = "Done?", value = FALSE),
+      conditionalPanel(
+        
+        #After determaining null properties, ask about alt
+        
+        condition="input.checkboxp1 == true",
+        numericInput("alt1","Alternative Probability of Sucess for Group 1",min =0, max = 1, value = .6),
+        numericInput("alt2","Alternative Probability of Sucess for Group 2",min =0, max = 1, value = .6),
+        
+        checkboxInput("checkboxp2", label = "Done?", value = FALSE),
+        conditionalPanel(
+          
+          #once alt is determained, ask about test (direction and LOS)
+          
+          condition="input.checkboxp2 == true",
+          selectInput("side2", label = "Direction", 
+                      choices = list("Greater" = 1, "Less" = 2, "Two Tailed" = 3), 
+                      selected = 1),
+          numericInput("los2","Level of Significance",min =0,max=1,  value = .05),
+          checkboxInput("checkboxp3", label = "Done?", value = FALSE),
+          radioButtons("radio2",label= "Number/Prop of Success",choices = list("Number of Successes" = 1,"Proportion of Successes" = 2), selected = 1)
+          
       
-      numericInput("Hyp1","Group 1 Hypothesised Probability of Sucess",min =0, max = 1, value = .5),
-      numericInput("Hyp2","Group 2 Hypothesised Probability of Sucess",min =0, max = 1, value = .5),
-      numericInput("Alt","Alternative Difference in Probabilities (G1-G2)",min =0, max = 1, value = .1),
-      numericInput("n","Sample Size of Each Group",min =1, value = 5),
-      numericInput("reps","Number of Reps",min =0,  value = 100),
-      numericInput("los","Level of Significance",min =0,max=1,  value = .05)
       
-    ),
+    ))),
   
   conditionalPanel(
     
