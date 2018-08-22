@@ -11,24 +11,26 @@ ui <- fluidPage(
     
     #Start by choosing type of test
     
-    selectInput("select", label = "Sample Type", 
-                choices = list("1 Sample Proportion" = 1, "2 Sample Proportion" = 2, "1 Sample Mean" = 3, "2 Sample Mean" = 4), 
+    selectInput("select", label = "Scenerio", 
+                choices = list("Test for 1 Sample Proportion" = 1, "Test for 2 Sample Proportion" = 2, "Test for 1 Sample Mean" = 3, "Test for 2 Sample Mean" = 4), 
                 selected = 1),
+    radioButtons("radio",label= "Number/Prop of Success",choices = list("Number of Successes" = 1,"Proportion of Successes" = 2), selected = 1),
+    
     conditionalPanel(
       condition = "input.select == 1",
       
       #Initial Options if you choose 1 Samp Prop
       
-      numericInput("Hyp","Hypothesised Probability of Sucess",min =0, max = 1, value = .5),
-      numericInput("n","Sample Size",min =0, value = 5),
-      numericInput("reps","Number of Reps",min =0,  value = 100),
+      sliderInput("Hyp","Probability of Sucess Under Null",min =0, max = 1, value = .5,step=.05),
+      sliderInput("n","Sample Size",min =0,max=100, value = 5,step=1),
+      sliderInput("reps","Number of Reps",min =0, max=2000, value = 1000,step=1),
       checkboxInput("checkbox", label = "Done?", value = FALSE),
       conditionalPanel(
         
         #After determaining null properties, ask about alt
         
         condition="input.checkbox == true",
-        numericInput("Alt","Alternative Probability of Sucess",min =0, max = 1, value = .6),
+        sliderInput("Alt","Alternative Probability of Sucess",min =0, max = 1, value = .6,step=.05),
         checkboxInput("checkbox2", label = "Done?", value = FALSE),
         conditionalPanel(
           
@@ -38,10 +40,9 @@ ui <- fluidPage(
           selectInput("side", label = "Direction", 
                       choices = list("Greater" = 1, "Less" = 2, "Two Tailed" = 3), 
                       selected = 1),
-          numericInput("los","Level of Significance",min =0,max=1,  value = .05),
-          checkboxInput("checkbox3", label = "Done?", value = FALSE),
-          radioButtons("radio",label= "Number/Prop of Success",choices = list("Number of Successes" = 1,"Proportion of Successes" = 2), selected = 1)
-          
+          sliderInput("los","Level of Significance",min =.01,max=.1,  value = .05,step=.01),
+          checkboxInput("checkbox3", label = "Done?", value = FALSE)
+
         )
     )
     ),
@@ -182,11 +183,9 @@ server <- function(input,output) {
       min = 0
       backwards = input$n + 1
       if(temp[backwards] > input$los){
-        print('ehlllp')
         min = 0
         backwards = input$n + 1
       }else{
-        print('hellp')
         while (min < input$los){
           holdlos = min
           holdpos = backwards
@@ -209,7 +208,8 @@ server <- function(input,output) {
       rejreg = backwards
   
   
-   #create three stages of graphs: 1. just the null, 2. null and alt, 3. Combined dist with info about the rejection region   
+   #create three stages of graphs: 1. just the null, 2. null and alt, 3. Combined dist with info about the rejection region 
+      #first if its number of success
       if(input$radio==1){
         p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
           annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
@@ -233,6 +233,7 @@ server <- function(input,output) {
           ggtitle("Combined Distribution")+xlab("Number of Successes")+ylab("Count")+
           geom_vline(xintercept=rejreg, col="red")+geom_rect(aes(xmin=rejreg, xmax=Inf, ymin=0, ymax=Inf, alpha=.3),fill="red")+
           guides(alpha=FALSE)
+        #then if it's prop of success
       }else{
         dat$num = dat$num/input$n
         p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Proportion of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
@@ -299,7 +300,7 @@ server <- function(input,output) {
       
       #create three stages of graphs: 1. just the null, 2. null and alt, 3. Combined dist with info about the rejection region   
       
-      
+      #this if number of success
       if(input$radio == 1){
         p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
           annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
@@ -308,7 +309,7 @@ server <- function(input,output) {
           annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
         
         filler <- ggplot()
-        
+        #deals with the less than 0 case
         if(rejreg == -1){
         words <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <", 0),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", round(min*input$reps,2), "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+annotate("text",x=5,y=5,label=paste("Alternaitve Proportion of Reps:", round(altmin*input$reps,2), "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
           theme(axis.title.x=element_blank(),
@@ -326,6 +327,7 @@ server <- function(input,output) {
           ggtitle("Combined Distribution")+xlab("Number of Successes")+ylab("Count")+
           geom_vline(xintercept=0, col="red")+geom_rect(aes(xmin=-Inf, xmax=0, ymin=0, ymax=Inf, alpha=.3),fill="red")+
           guides(alpha=FALSE)
+        #deals with non less than 0 case
         }else{
           words <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <=", rejreg),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", round(min*input$reps,2), "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+annotate("text",x=5,y=5,label=paste("Alternaitve Proportion of Reps:", round(altmin*input$reps,2), "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
             theme(axis.title.x=element_blank(),
@@ -344,6 +346,7 @@ server <- function(input,output) {
             geom_vline(xintercept=rejreg, col="red")+geom_rect(aes(xmin=-Inf, xmax=rejreg, ymin=0, ymax=Inf, alpha=.3),fill="red")+
             guides(alpha=FALSE)
         }
+        #do this if prop of success
       }else{
         dat$num = dat$num/input$n
         p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Proportion of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
@@ -426,7 +429,8 @@ server <- function(input,output) {
       
       
       #create three stages of graphs: 1. just the null, 2. null and alt, 3. Combined dist with info about the rejection region   
-     if(input$radio==1){ 
+     #this if number of success
+      if(input$radio==1){ 
       p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
         annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
       
@@ -451,6 +455,7 @@ server <- function(input,output) {
         ggtitle("Combined Distribution")+xlab("Number of Successes")+ylab("Count")+
         geom_vline(xintercept=rejregfro, col="red")+geom_vline(xintercept=rejregend, col="red")+geom_rect(aes(xmin=-Inf, xmax=rejregfro, ymin=0, ymax=Inf, alpha=.3),fill="red")+geom_rect(aes(xmin=rejregend, xmax=Inf, ymin=0, ymax=Inf, alpha=.3),fill="red")+
         guides(alpha=FALSE)
+      #this if prop of success
      }else{
        dat$num = dat$num/input$n
        p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Proportion of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
@@ -512,61 +517,37 @@ server <- function(input,output) {
   
   })
   output$plot2samp <- renderPlot({
-    nully = rep(NA, times=input$reps)
-    alty = rep(NA, times=input$reps)
-    for (i in 1:input$reps) {
-      setofnull1 = sample(c(T,F),size=input$n, replace=T, prob=c(input$Hyp,1-input$Hyp1))
-      setofnull2 = sample(c(T,F),size=input$n, replace=T, prob=c(input$Hyp,1-input$Hyp2))
-      setoffivealt = sample(c(T,F),size=input$n, replace=T, prob=c(input$Alt,1-input$Alt))
-      totalnull = sum(setofnull1)+sum(setofnull2)
-      totalalt = sum(setoffivealt)
+    #Create vectors the length of repetitions
+    nully = rep(NA, times=input$reps2)
+    alty = rep(NA, times=input$reps2)
+    
+    #Fill these vectors with the sum of T's in samples of T/F (with specified prob) of size n (specified)
+    for (i in 1:input$reps2) {
+      setoffivenull1 = sample(c(T,F),size=input$n2, replace=T, prob=c(input$Hyp1,1-input$Hyp1))
+      setoffivenull2 = sample(c(T,F),size=input$n2, replace=T, prob=c(input$Hyp2,1-input$Hyp2))
+      
+      setoffivealt1 = sample(c(T,F),size=input$n2, replace=T, prob=c(input$alt1,1-input$alt1))
+      setoffivealt2 = sample(c(T,F),size=input$n2, replace=T, prob=c(input$alt2,1-input$alt2))
+      
+      totalnull = sum(setoffivenull1)-sum(setoffivenull2)
+      totalalt = sum(setoffivealt1)-sum(setoffivealt2)
       nully[i]=totalnull
       alty[i]=totalalt
+      
     }
     
-  })
-  output$plot3samp <- renderPlot({
-    nully = rep(NA, times=input$repst)
-    alty = rep(NA, times=input$repst)
-    for (i in 1:input$repst) {
-      setofnull = rnorm(input$nt,input$Hypt,input$stde)
-      setofalt = rnorm(input$nt,input$Altt,input$stde)
-      totalnull = mean(setofnull)
-      totalalt = mean(setofalt)
-      nully[i]=totalnull
-      alty[i]=totalalt
-    }
-    dat <- data.frame(DistributionType = factor(rep(c("null","alt"), each=input$repst)), 
+    #Creates a data frame with all of the values; labeled with null or alt
+    dat <- data.frame(DistributionType = factor(rep(c("null","alt"), each=input$reps2)), 
                       num = c(nully,alty))
-    ordernull <- sort(nully)
-    orderalt <- sort(alty)
-    index = input$repst+1
-    alpha = 0
-    while (alpha <= input$lost){
-      alpha=alpha+(1/input$repst)
-      index = index-1
-    }
-    holder = (input$repst-index)/input$repst
-    rejreggreateq = ordernull[index+1]
-    altind = input$repst
-    while(ordernull[index+1]<=orderalt[altind] & altind>1){
-      altind = altind-1
-    }
-    altans = orderalt[altind]
-    holderalt = (input$repst-altind+1)/input$repst
-    ggplot()+geom_histogram(data=dat, aes(x=num,fill=DistributionType))+scale_fill_manual(values=c("grey36","white"))+
-      theme(legend.background = element_rect(fill="grey90",size=0.5, linetype="solid")) + ggtitle("Distribution")+xlab("Number of Successes")+ylab("Count")+
-      geom_vline(xintercept=rejreggreateq, col="red")+geom_rect(aes(xmin=rejreggreateq, xmax=Inf, ymin=0, ymax=Inf, alpha=.3),fill="red") +
-      guides(alpha=FALSE)+annotate("text", -Inf, Inf, label = paste("Rejection Region: X >=", round(rejreggreateq,2)), hjust = 0, vjust = 1,col="red")+
-      annotate("text", -Inf, Inf, label = paste("Hypothesized Proportion of Reps:", input$repst-index, "/", input$repst, "=", round(holder,2)), hjust = 0, vjust = 3,col="red")+
-      annotate("text", -Inf, Inf, label = paste("Alternaitve Proportion of Reps:", input$repst-altind+1, "/", input$repst, "=", round(holderalt,2)), hjust = 0, vjust = 5,col="red")
     
-     
+    })
+  
+  
     
-    
-  })
+
+
+
 }
 
-
-
 shinyApp(ui = ui, server = server)
+
