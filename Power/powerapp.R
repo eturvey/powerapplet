@@ -25,7 +25,7 @@ ui <- fluidPage(
       sliderInput("n","Sample Size",min =0,max=100, value = 50,step=1),
       sliderInput("reps","Number of Reps",min =0, max=2000, value = 1000,step=1),
       selectInput("side", label = "Direction", 
-                  choices = list("Greater" = 1, "Less" = 2, "Two Tailed" = 3), 
+                  choices = list("Greater" = 1, "Less" = 2), 
                   selected = 1),
       sliderInput("los","Level of Significance",min =.01,max=.1,  value = .05,step=.01),
       checkboxInput("checkbox", label = "Done?", value = FALSE),
@@ -249,11 +249,22 @@ server <- function(input,output) {
       }else{
         dat$num = dat$num/input$n
         p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Proportion of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
-          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")+geom_vline(xintercept=rejreg/input$n, col="red")
         
         p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Proportion of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="alt")$num)), hjust = 0, vjust = 1,fontface="bold")+
-          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
-        words <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X >=", rejreg/input$n),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+annotate("text",x=5,y=5,label=paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
+          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")+geom_vline(xintercept=rejreg/input$n, col="red")
+        words1 <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X >=", rejreg/input$n),col="red",fontface="bold")+annotate("text",x=5.5,y=7,label=paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+
+          theme(axis.title.x=element_blank(),
+                axis.text.x=element_blank(),
+                axis.ticks.x=element_blank(),
+                axis.title.y=element_blank(),
+                axis.text.y=element_blank(),
+                axis.ticks.y=element_blank(),
+                panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(),
+                panel.border = element_blank(),
+                panel.background = element_blank())
+        words2 <- qplot(1:10,1:10,geom="blank")+annotate("text",x=5,y=7,label=paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
           theme(axis.title.x=element_blank(),
                 axis.text.x=element_blank(),
                 axis.ticks.x=element_blank(),
@@ -315,15 +326,27 @@ server <- function(input,output) {
       #this if number of success
       if(input$radio == 1){
         p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
-          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")+geom_vline(xintercept=rejreg, col="red")
         
         p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="alt")$num)), hjust = 0, vjust = 1,fontface="bold")+
-          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")+geom_vline(xintercept=rejreg, col="red")
         
         filler <- ggplot()
         #deals with the less than 0 case
         if(rejreg == -1){
-        words <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <", 0),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", round(min*input$reps,2), "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+annotate("text",x=5,y=5,label=paste("Alternaitve Proportion of Reps:", round(altmin*input$reps,2), "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
+        words1 <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <", 0),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", round(min*input$reps,2), "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+
+          theme(axis.title.x=element_blank(),
+                axis.text.x=element_blank(),
+                axis.ticks.x=element_blank(),
+                axis.title.y=element_blank(),
+                axis.text.y=element_blank(),
+                axis.ticks.y=element_blank(),
+                panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(),
+                panel.border = element_blank(),
+                panel.background = element_blank())
+
+        words2 <- qplot(1:10,1:10,geom="blank")+annotate("text",x=5,y=7,label=paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
           theme(axis.title.x=element_blank(),
                 axis.text.x=element_blank(),
                 axis.ticks.x=element_blank(),
@@ -341,7 +364,18 @@ server <- function(input,output) {
           guides(alpha=FALSE)
         #deals with non less than 0 case
         }else{
-          words <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <=", rejreg),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", round(min*input$reps,2), "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+annotate("text",x=5,y=5,label=paste("Alternaitve Proportion of Reps:", round(altmin*input$reps,2), "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
+          words1 <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <=", rejreg),col="red",fontface="bold")+annotate("text",x=5.5,y=7,label=paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+
+            theme(axis.title.x=element_blank(),
+                  axis.text.x=element_blank(),
+                  axis.ticks.x=element_blank(),
+                  axis.title.y=element_blank(),
+                  axis.text.y=element_blank(),
+                  axis.ticks.y=element_blank(),
+                  panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank(),
+                  panel.border = element_blank(),
+                  panel.background = element_blank())
+          words2 <- qplot(1:10,1:10,geom="blank")+annotate("text",x=5,y=7,label=paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
             theme(axis.title.x=element_blank(),
                   axis.text.x=element_blank(),
                   axis.ticks.x=element_blank(),
@@ -362,12 +396,24 @@ server <- function(input,output) {
       }else{
         dat$num = dat$num/input$n
         p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Proportion of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
-          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")+geom_vline(xintercept=rejreg/input$n, col="red")
         filler<-ggplot()
         p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="alt")$num)), hjust = 0, vjust = 1,fontface="bold")+
-          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")+geom_vline(xintercept=rejreg/input$n, col="red")
         if(rejreg == -1){
-          words <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <", 0),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", round(min*input$reps,2), "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+annotate("text",x=5,y=5,label=paste("Alternaitve Proportion of Reps:", round(altmin*input$reps,2), "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
+          words1 <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <", 0),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", round(min*input$reps,2), "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+
+            theme(axis.title.x=element_blank(),
+                  axis.text.x=element_blank(),
+                  axis.ticks.x=element_blank(),
+                  axis.title.y=element_blank(),
+                  axis.text.y=element_blank(),
+                  axis.ticks.y=element_blank(),
+                  panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank(),
+                  panel.border = element_blank(),
+                  panel.background = element_blank())
+          
+          words2 <- qplot(1:10,1:10,geom="blank")+annotate("text",x=5,y=7,label=paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
             theme(axis.title.x=element_blank(),
                   axis.text.x=element_blank(),
                   axis.ticks.x=element_blank(),
@@ -384,7 +430,18 @@ server <- function(input,output) {
             geom_vline(xintercept=0, col="red")+geom_rect(aes(xmin=-Inf, xmax=0, ymin=0, ymax=Inf, alpha=.3),fill="red")+
             guides(alpha=FALSE)
         }else{
-          words <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <=", rejreg),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", round(min*input$reps,2), "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+annotate("text",x=5,y=5,label=paste("Alternaitve Proportion of Reps:", round(altmin*input$reps,2), "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
+          words1 <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <=", rejreg),col="red",fontface="bold")+annotate("text",x=5.5,y=7,label=paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+
+            theme(axis.title.x=element_blank(),
+                  axis.text.x=element_blank(),
+                  axis.ticks.x=element_blank(),
+                  axis.title.y=element_blank(),
+                  axis.text.y=element_blank(),
+                  axis.ticks.y=element_blank(),
+                  panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank(),
+                  panel.border = element_blank(),
+                  panel.background = element_blank())
+          words2 <- qplot(1:10,1:10,geom="blank")+annotate("text",x=5,y=7,label=paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
             theme(axis.title.x=element_blank(),
                   axis.text.x=element_blank(),
                   axis.ticks.x=element_blank(),
@@ -398,104 +455,106 @@ server <- function(input,output) {
           p2g <- ggplot()+geom_histogram(data=dat, aes(x=num,fill=DistributionType))+scale_fill_manual(values=c("blue","green"))+
             theme(legend.background = element_rect(fill="grey90",size=0.5, linetype="solid"))+ 
             ggtitle("Combined Distribution")+xlab("Number of Successes")+ylab("Count")+
-            geom_vline(xintercept=rejreg, col="red")+geom_rect(aes(xmin=-Inf, xmax=rejreg, ymin=0, ymax=Inf, alpha=.3),fill="red")+
+            geom_vline(xintercept=rejreg/input$n, col="red")+geom_rect(aes(xmin=-Inf, xmax=rejreg/input$n, ymin=0, ymax=Inf, alpha=.3),fill="red")+
             guides(alpha=FALSE)
         }
-      }
-  #do this if two tailed test
-    }else if(input$side==3){
-      min = 0
-      front = 1
-      end = input$n+1
-      if(temp[front]+temp[end] > input$los){
-        front = -1
-        end = input$n+1
-      }else{
-        while (min < input$los){
-          holdlos = min
-          holdfro = front
-          holden = end
-          min = min + temp[end]+temp[front]
-          front = front+1
-          end=end-1
-        }
-        min = holdlos
-        end = holden
-        front = holdfro -2
-      }
-      
-      #add up probabilities under alt until rejection region is reached
-      
-      currentfro = 1
-      currentend = input$n+1
-      altmin = 0
-      while (front >= currentfro-1 & end <= currentend-1){
-        
-        altmin = altmin + tempalt[currentfro] + tempalt[currentend]
-        currentfro = currentfro+1
-        currentend = currentend-1
-      }
-
-      rejregfro = front
-      rejregend = end
-      
-      
-      #create three stages of graphs: 1. just the null, 2. null and alt, 3. Combined dist with info about the rejection region   
-     #this if number of success
-      if(input$radio==1){ 
-      p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
-        annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
-      
-      p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="alt")$num)), hjust = 0, vjust = 1,fontface="bold")+
-        annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
-      
-      words <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <=", rejregfro, "and X >=", rejregend),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+annotate("text",x=5,y=5,label=paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
-        theme(axis.title.x=element_blank(),
-              axis.text.x=element_blank(),
-              axis.ticks.x=element_blank(),
-              axis.title.y=element_blank(),
-              axis.text.y=element_blank(),
-              axis.ticks.y=element_blank(),
-              panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              panel.border = element_blank(),
-              panel.background = element_blank())
-      
-      filler <- ggplot()
-      p2g <- ggplot()+geom_histogram(data=dat, aes(x=num,fill=DistributionType))+scale_fill_manual(values=c("blue","green"))+
-        theme(legend.background = element_rect(fill="grey90",size=0.5, linetype="solid"))+ 
-        ggtitle("Combined Distribution")+xlab("Number of Successes")+ylab("Count")+
-        geom_vline(xintercept=rejregfro, col="red")+geom_vline(xintercept=rejregend, col="red")+geom_rect(aes(xmin=-Inf, xmax=rejregfro, ymin=0, ymax=Inf, alpha=.3),fill="red")+geom_rect(aes(xmin=rejregend, xmax=Inf, ymin=0, ymax=Inf, alpha=.3),fill="red")+
-        guides(alpha=FALSE)
-      #this if prop of success
-     }else{
-       dat$num = dat$num/input$n
-       p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Proportion of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
-         annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
-       
-       p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Proportion of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="alt")$num)), hjust = 0, vjust = 1,fontface="bold")+
-         annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
-       
-       words <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <=", rejregfro/input$n, "and X >=", rejregend/input$n),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+annotate("text",x=5,y=5,label=paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
-         theme(axis.title.x=element_blank(),
-               axis.text.x=element_blank(),
-               axis.ticks.x=element_blank(),
-               axis.title.y=element_blank(),
-               axis.text.y=element_blank(),
-               axis.ticks.y=element_blank(),
-               panel.grid.major = element_blank(),
-               panel.grid.minor = element_blank(),
-               panel.border = element_blank(),
-               panel.background = element_blank())
-       
-       filler <- ggplot()
-       p2g <- ggplot()+geom_histogram(data=dat, aes(x=num,fill=DistributionType))+scale_fill_manual(values=c("blue","green"))+
-         theme(legend.background = element_rect(fill="grey90",size=0.5, linetype="solid"))+ 
-         ggtitle("Combined Distribution")+xlab("Proportion of Successes")+ylab("Count")+
-         geom_vline(xintercept=rejregfro/input$n, col="red")+geom_vline(xintercept=rejregend/input$n, col="red")+geom_rect(aes(xmin=-Inf, xmax=rejregfro/input$n, ymin=0, ymax=Inf, alpha=.3),fill="red")+geom_rect(aes(xmin=rejregend/input$n, xmax=Inf, ymin=0, ymax=Inf, alpha=.3),fill="red")+
-         guides(alpha=FALSE)
-     }
-    }
+      }}
+  #do this if two tailed test - does not work for now
+    
+    
+    # }else if(input$side==3){
+    #   min = 0
+    #   front = 1
+    #   end = input$n+1
+    #   if(temp[front]+temp[end] > input$los){
+    #     front = -1
+    #     end = input$n+1
+    #   }else{
+    #     while (min < input$los){
+    #       holdlos = min
+    #       holdfro = front
+    #       holden = end
+    #       min = min + temp[end]+temp[front]
+    #       front = front+1
+    #       end=end-1
+    #     }
+    #     min = holdlos
+    #     end = holden
+    #     front = holdfro -2
+    #   }
+    #   
+    #   #add up probabilities under alt until rejection region is reached
+    #   
+    #   currentfro = 1
+    #   currentend = input$n+1
+    #   altmin = 0
+    #   while (front >= currentfro-1 & end <= currentend-1){
+    #     
+    #     altmin = altmin + tempalt[currentfro] + tempalt[currentend]
+    #     currentfro = currentfro+1
+    #     currentend = currentend-1
+    #   }
+    # 
+    #   rejregfro = front
+    #   rejregend = end
+    #   
+    #   
+    #   #create three stages of graphs: 1. just the null, 2. null and alt, 3. Combined dist with info about the rejection region   
+    #  #this if number of success
+    #   if(input$radio==1){ 
+    #   p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
+    #     annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+    #   
+    #   p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="alt")$num)), hjust = 0, vjust = 1,fontface="bold")+
+    #     annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+    #   
+    #   words <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <=", rejregfro, "and X >=", rejregend),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+annotate("text",x=5,y=5,label=paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
+    #     theme(axis.title.x=element_blank(),
+    #           axis.text.x=element_blank(),
+    #           axis.ticks.x=element_blank(),
+    #           axis.title.y=element_blank(),
+    #           axis.text.y=element_blank(),
+    #           axis.ticks.y=element_blank(),
+    #           panel.grid.major = element_blank(),
+    #           panel.grid.minor = element_blank(),
+    #           panel.border = element_blank(),
+    #           panel.background = element_blank())
+    #   
+    #   filler <- ggplot()
+    #   p2g <- ggplot()+geom_histogram(data=dat, aes(x=num,fill=DistributionType))+scale_fill_manual(values=c("blue","green"))+
+    #     theme(legend.background = element_rect(fill="grey90",size=0.5, linetype="solid"))+ 
+    #     ggtitle("Combined Distribution")+xlab("Number of Successes")+ylab("Count")+
+    #     geom_vline(xintercept=rejregfro, col="red")+geom_vline(xintercept=rejregend, col="red")+geom_rect(aes(xmin=-Inf, xmax=rejregfro, ymin=0, ymax=Inf, alpha=.3),fill="red")+geom_rect(aes(xmin=rejregend, xmax=Inf, ymin=0, ymax=Inf, alpha=.3),fill="red")+
+    #     guides(alpha=FALSE)
+    #   #this if prop of success
+    #  }else{
+    #    dat$num = dat$num/input$n
+    #    p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Proportion of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
+    #      annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+    #    
+    #    p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Proportion of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="alt")$num)), hjust = 0, vjust = 1,fontface="bold")+
+    #      annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+    #    
+    #    words <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X <=", rejregfro/input$n, "and X >=", rejregend/input$n),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+annotate("text",x=5,y=5,label=paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
+    #      theme(axis.title.x=element_blank(),
+    #            axis.text.x=element_blank(),
+    #            axis.ticks.x=element_blank(),
+    #            axis.title.y=element_blank(),
+    #            axis.text.y=element_blank(),
+    #            axis.ticks.y=element_blank(),
+    #            panel.grid.major = element_blank(),
+    #            panel.grid.minor = element_blank(),
+    #            panel.border = element_blank(),
+    #            panel.background = element_blank())
+    #    
+    #    filler <- ggplot()
+    #    p2g <- ggplot()+geom_histogram(data=dat, aes(x=num,fill=DistributionType))+scale_fill_manual(values=c("blue","green"))+
+    #      theme(legend.background = element_rect(fill="grey90",size=0.5, linetype="solid"))+ 
+    #      ggtitle("Combined Distribution")+xlab("Proportion of Successes")+ylab("Count")+
+    #      geom_vline(xintercept=rejregfro/input$n, col="red")+geom_vline(xintercept=rejregend/input$n, col="red")+geom_rect(aes(xmin=-Inf, xmax=rejregfro/input$n, ymin=0, ymax=Inf, alpha=.3),fill="red")+geom_rect(aes(xmin=rejregend/input$n, xmax=Inf, ymin=0, ymax=Inf, alpha=.3),fill="red")+
+    #      guides(alpha=FALSE)
+    #  }
+    # }
     
   #sets up the layout of the graphs
     lay <- rbind(c(1,1,1,1,1,1,2,2,2,2,2,2),
