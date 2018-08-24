@@ -22,8 +22,12 @@ ui <- fluidPage(
       #Initial Options if you choose 1 Samp Prop
       
       sliderInput("Hyp","Probability of Sucess Under Null",min =0, max = 1, value = .5,step=.05),
-      sliderInput("n","Sample Size",min =0,max=100, value = 5,step=1),
+      sliderInput("n","Sample Size",min =0,max=100, value = 50,step=1),
       sliderInput("reps","Number of Reps",min =0, max=2000, value = 1000,step=1),
+      selectInput("side", label = "Direction", 
+                  choices = list("Greater" = 1, "Less" = 2, "Two Tailed" = 3), 
+                  selected = 1),
+      sliderInput("los","Level of Significance",min =.01,max=.1,  value = .05,step=.01),
       checkboxInput("checkbox", label = "Done?", value = FALSE),
       conditionalPanel(
         
@@ -37,11 +41,8 @@ ui <- fluidPage(
           #once alt is determained, ask about test (direction and LOS)
           
           condition="input.checkbox2 == true",
-          selectInput("side", label = "Direction", 
-                      choices = list("Greater" = 1, "Less" = 2, "Two Tailed" = 3), 
-                      selected = 1),
-          sliderInput("los","Level of Significance",min =.01,max=.1,  value = .05,step=.01),
-          checkboxInput("checkbox3", label = "Done?", value = FALSE)
+          
+          checkboxInput("checkbox3", label = "View Combined Distribution?", value = FALSE)
 
         )
     )
@@ -211,13 +212,24 @@ server <- function(input,output) {
    #create three stages of graphs: 1. just the null, 2. null and alt, 3. Combined dist with info about the rejection region 
       #first if its number of success
       if(input$radio==1){
-        p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="null")$num)), hjust = 0, vjust = 1,fontface="bold")+
-          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+        p1 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="null"), fill="green",aes(x=num))+ggtitle("Null Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", round(mean(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 1,fontface="bold")+
+          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="null")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")+geom_vline(xintercept=rejreg, col="red")
     
-        p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", mean(subset(dat,DistributionType=="alt")$num)), hjust = 0, vjust = 1,fontface="bold")+
-          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")
+        p3 <- ggplot()+geom_histogram(data=subset(dat,DistributionType=="alt"), fill="blue",aes(x=num))+ggtitle("Alternative Distribution")+xlab("Number of Successes")+ylab("Count")+annotate("text", -Inf, Inf, label = paste("Mean:", round(mean(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 1,fontface="bold")+
+          annotate("text",  -Inf, Inf, label = paste("SD:", round(sd(subset(dat,DistributionType=="alt")$num),2)), hjust = 0, vjust = 3,fill="blue",fontface="bold")+geom_vline(xintercept=rejreg, col="red")
         filler <- ggplot()
-        words <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X >=", rejreg),col="red",fontface="bold")+annotate("text",x=5,y=7,label=paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+annotate("text",x=5,y=5,label=paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
+        words1 <- qplot(1:10,1:10,geom="blank")+annotate("text", x=5, y=9, label= paste("Rejection Region: X >=", rejreg),col="red",fontface="bold")+annotate("text",x=5.5,y=7,label=paste("Hypothesized Proportion of Reps:", min*input$reps, "/", input$reps, "=", round(min,2)),col="red",fontface="bold")+
+          theme(axis.title.x=element_blank(),
+                axis.text.x=element_blank(),
+                axis.ticks.x=element_blank(),
+                axis.title.y=element_blank(),
+                axis.text.y=element_blank(),
+                axis.ticks.y=element_blank(),
+                panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(),
+                panel.border = element_blank(),
+                panel.background = element_blank())
+        words2 <- qplot(1:10,1:10,geom="blank")+annotate("text",x=5,y=7,label=paste("Alternaitve Proportion of Reps:", altmin*input$reps, "/", input$reps, "=", round(altmin,2)),col="red",fontface="bold")+
           theme(axis.title.x=element_blank(),
                 axis.text.x=element_blank(),
                 axis.ticks.x=element_blank(),
@@ -488,30 +500,30 @@ server <- function(input,output) {
   #sets up the layout of the graphs
     lay <- rbind(c(1,1,1,1,1,1,2,2,2,2,2,2),
                  c(1,1,1,1,1,1,2,2,2,2,2,2),
+                 c(4,4,4,4,4,4,5,5,5,5,5,5),
                  c(3,3,3,3,3,3,3,3,3,3,3,3),
                  c(3,3,3,3,3,3,3,3,3,3,3,3),
-                 c(3,3,3,3,3,3,3,3,3,3,3,3),
-                 c(4,4,4,4,4,4,4,4,4,4,4,4))
+                 c(3,3,3,3,3,3,3,3,3,3,3,3))
     
     #puts certain graphs up if certain checkbox's are marked
 
     if(input$checkbox == T){
-      grid.arrange(p1,filler,filler,filler,layout_matrix=lay)
+      grid.arrange(p1,filler,filler,words1,filler,layout_matrix=lay)
     }
     if(input$checkbox2 == T){
-      grid.arrange(p1,p3,filler,filler,layout_matrix=lay)
+      grid.arrange(p1,p3,filler,words1,words2,layout_matrix=lay)
     }
     if(input$checkbox3 == T){
       if(input$side == 1){
-        grid.arrange(p1,p3,p2g,words,layout_matrix=lay)
+        grid.arrange(p1,p3,p2g,words1,words2,layout_matrix=lay)
       } else if(input$side == 2){
-        grid.arrange(p1,p3,p2g,words,layout_matrix=lay)
+        grid.arrange(p1,p3,p2g,words1,words2,layout_matrix=lay)
       } else if(input$side == 3){
-        grid.arrange(p1,p3,p2g,words,layout_matrix=lay)
+        grid.arrange(p1,p3,p2g,words1,words2,layout_matrix=lay)
       }
     }
     if(input$checkbox == F){
-      grid.arrange(filler,filler,filler,filler,layout_matrix=lay)
+      grid.arrange(filler,filler,filler,filler,filler,layout_matrix=lay)
     }
   
   
